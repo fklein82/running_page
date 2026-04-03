@@ -7,62 +7,73 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+  :root {
+    --black-bg: #000000;
+    --dark-surface: #1c1c1e;
+    --accent-blue: #0a84ff;
+    --text-primary: #ffffff;
+    --text-secondary: #98989d;
+    --text-tertiary: #6e6e73;
+    --separator: rgba(84, 84, 88, 0.65);
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e0e0e0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif; line-height: 1.47; letter-spacing: -0.022em; color: var(--text-primary); background: var(--black-bg); -webkit-font-smoothing: antialiased; }
 
-  .header { background: #111; border-bottom: 1px solid #222; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
-  .header h1 { font-size: 18px; font-weight: 600; }
-  .header h1 span { color: #e0df4f; }
-  .header nav a { color: #999; text-decoration: none; font-size: 14px; margin-left: 20px; }
-  .header nav a:hover { color: #fff; }
+  .header { background: rgba(0,0,0,0.72); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--separator); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+  .header-inner { max-width: 980px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 22px; }
+  .header h1 { font-size: 1.1rem; font-weight: 600; }
+  .header h1 span { color: var(--accent-blue); }
+  .header nav a { color: var(--text-primary); text-decoration: none; font-size: 0.857rem; margin-left: 2.5rem; opacity: 0.8; }
+  .header nav a:hover { opacity: 1; }
 
-  #map { width: 100%; height: 65vh; margin-top: 49px; }
+  #map { width: 100%; height: 65vh; margin-top: 48px; }
+  .leaflet-container { background: #111 !important; }
 
-  .stats-bar { display: flex; justify-content: center; gap: 40px; padding: 20px; background: #111; border-bottom: 1px solid #222; flex-wrap: wrap; }
+  .stats-bar { display: flex; justify-content: center; gap: 48px; padding: 24px 22px; background: var(--dark-surface); border-bottom: 1px solid var(--separator); flex-wrap: wrap; }
   .stat { text-align: center; }
-  .stat-value { font-size: 28px; font-weight: 700; color: #e0df4f; }
-  .stat-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .stat-value { font-size: 32px; font-weight: 700; color: var(--accent-blue); }
+  .stat-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 4px; }
 
-  .controls { display: flex; justify-content: center; gap: 8px; padding: 16px; background: #0a0a0a; flex-wrap: wrap; }
-  .year-btn { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 6px 14px; border-radius: 16px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-  .year-btn:hover { border-color: #e0df4f; color: #e0df4f; }
-  .year-btn.active { background: #e0df4f; color: #000; border-color: #e0df4f; font-weight: 600; }
+  .controls { display: flex; justify-content: center; gap: 8px; padding: 16px 22px; flex-wrap: wrap; }
+  .year-btn { background: var(--dark-surface); border: 1px solid var(--separator); color: var(--text-secondary); padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.2s; font-family: inherit; }
+  .year-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+  .year-btn.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); font-weight: 600; }
 
-  .activities-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 16px 24px 40px; max-width: 1400px; margin: 0 auto; }
-  .activity-card { background: #141414; border: 1px solid #222; border-radius: 8px; padding: 14px; transition: border-color 0.2s; cursor: pointer; }
-  .activity-card:hover { border-color: #e0df4f; }
-  .activity-card .date { font-size: 12px; color: #666; }
-  .activity-card .name { font-size: 14px; font-weight: 500; margin: 4px 0; }
-  .activity-card .metrics { display: flex; gap: 16px; margin-top: 8px; }
-  .activity-card .metric { font-size: 13px; }
-  .activity-card .metric strong { color: #e0df4f; }
+  .section { max-width: 980px; margin: 0 auto; padding: 24px 22px; }
+  .section-title { font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
 
-  .locations { padding: 16px 24px; max-width: 1400px; margin: 0 auto; display: flex; gap: 32px; flex-wrap: wrap; }
-  .locations h3 { font-size: 14px; color: #888; margin-bottom: 10px; width: 100%; }
-  .location-col { flex: 1; min-width: 250px; }
-  .location-col h4 { font-size: 13px; color: #e0df4f; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-  .location-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
-  .location-item .loc-name { color: #ccc; }
-  .location-item .loc-flag { margin-right: 6px; }
-  .location-item .loc-count { color: #e0df4f; font-weight: 600; }
-  .location-item .loc-bar { background: #e0df4f; height: 3px; border-radius: 2px; margin-top: 2px; opacity: 0.3; }
+  .locations { display: flex; gap: 40px; flex-wrap: wrap; }
+  .location-col { flex: 1; min-width: 280px; }
+  .location-col h4 { font-size: 13px; color: var(--accent-blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .location-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(84,84,88,0.25); font-size: 14px; }
+  .loc-name { color: var(--text-primary); }
+  .loc-flag { margin-right: 8px; }
+  .loc-count { color: var(--accent-blue); font-weight: 600; font-size: 13px; }
+  .loc-bar { height: 2px; border-radius: 1px; background: var(--accent-blue); opacity: 0.25; margin-top: 2px; }
 
-  .heatmap { padding: 16px 24px; max-width: 1400px; margin: 0 auto; }
-  .heatmap h3 { font-size: 14px; color: #888; margin-bottom: 10px; }
   .heatmap-grid { display: flex; gap: 2px; flex-wrap: wrap; }
-  .heatmap-cell { width: 11px; height: 11px; border-radius: 2px; background: #161b22; }
-  .heatmap-cell.l1 { background: #0e4429; }
-  .heatmap-cell.l2 { background: #006d32; }
-  .heatmap-cell.l3 { background: #26a641; }
-  .heatmap-cell.l4 { background: #e0df4f; }
+  .heatmap-cell { width: 11px; height: 11px; border-radius: 2px; background: var(--dark-surface); }
+  .heatmap-cell.l1 { background: rgba(10,132,255,0.2); }
+  .heatmap-cell.l2 { background: rgba(10,132,255,0.45); }
+  .heatmap-cell.l3 { background: rgba(10,132,255,0.7); }
+  .heatmap-cell.l4 { background: var(--accent-blue); }
 
-  .footer { text-align: center; padding: 20px; color: #555; font-size: 12px; border-top: 1px solid #1a1a1a; }
-  .footer a { color: #e0df4f; text-decoration: none; }
+  .activities-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .activity-card { background: var(--dark-surface); border: 1px solid var(--separator); border-radius: 12px; padding: 16px; transition: border-color 0.2s; cursor: pointer; }
+  .activity-card:hover { border-color: var(--accent-blue); }
+  .activity-card .date { font-size: 12px; color: var(--text-tertiary); }
+  .activity-card .name { font-size: 15px; font-weight: 500; margin: 4px 0; }
+  .activity-card .metrics { display: flex; gap: 16px; margin-top: 8px; }
+  .activity-card .metric { font-size: 13px; color: var(--text-secondary); }
+  .activity-card .metric strong { color: var(--accent-blue); }
+
+  .footer { text-align: center; padding: 24px; color: var(--text-tertiary); font-size: 12px; border-top: 1px solid var(--separator); margin-top: 20px; }
+  .footer a { color: var(--accent-blue); text-decoration: none; }
 
   @media (max-width: 600px) {
-    .stats-bar { gap: 20px; }
-    .stat-value { font-size: 22px; }
-    .activities-grid { grid-template-columns: 1fr; padding: 12px; }
+    .stats-bar { gap: 24px; padding: 16px; }
+    .stat-value { font-size: 24px; }
+    .activities-grid { grid-template-columns: 1fr; }
     #map { height: 50vh; }
   }
 </style>
@@ -70,11 +81,13 @@
 <body>
 
 <div class="header">
-  <h1><span>Running</span> Journey</h1>
-  <nav>
-    <a href="https://www.fklein.me">Portfolio</a>
-    <a href="https://blog.fklein.me">Blog</a>
-  </nav>
+  <div class="header-inner">
+    <h1><span>Running</span> Journey</h1>
+    <nav>
+      <a href="https://www.fklein.me">Portfolio</a>
+      <a href="https://blog.fklein.me">Blog</a>
+    </nav>
+  </div>
 </div>
 
 <div id="map"></div>
@@ -89,26 +102,32 @@
 
 <div class="controls" id="year-controls"></div>
 
-<div class="locations" id="locations-section">
-  <h3>Where I Run</h3>
-  <div class="location-col" id="countries-list"></div>
-  <div class="location-col" id="cities-list"></div>
+<div class="section">
+  <h3 class="section-title">Where I Run</h3>
+  <div class="locations">
+    <div class="location-col" id="countries-list"></div>
+    <div class="location-col" id="cities-list"></div>
+  </div>
 </div>
 
-<div class="heatmap" id="heatmap-section"></div>
+<div class="section" id="heatmap-section">
+  <h3 class="section-title">Last 12 Months</h3>
+</div>
 
-<div class="activities-grid" id="activities-grid"></div>
+<div class="section">
+  <h3 class="section-title">Recent Runs</h3>
+  <div class="activities-grid" id="activities-grid"></div>
+</div>
 
 <div class="footer">
-  <a href="https://www.fklein.me">Frederic Klein</a> &bull; Running data visualized with Leaflet & OpenStreetMap
+  <a href="https://www.fklein.me">Frederic Klein</a> &bull; Data from Apple Health &bull; Map by OpenStreetMap & CARTO
 </div>
 
 <script>
 function decodePolyline(encoded) {
-  const points = [];
-  let index = 0, lat = 0, lng = 0;
+  var points = [], index = 0, lat = 0, lng = 0;
   while (index < encoded.length) {
-    let b, shift = 0, result = 0;
+    var b, shift = 0, result = 0;
     do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
     lat += (result & 1) ? ~(result >> 1) : (result >> 1);
     shift = 0; result = 0;
@@ -118,321 +137,129 @@ function decodePolyline(encoded) {
   }
   return points;
 }
+function formatPace(s) { if(!s||s<=0)return'-'; var p=1000/s; return Math.floor(p/60)+':'+Math.floor(p%60).toString().padStart(2,'0'); }
+function parseMT(mt) { if(!mt)return 0; var p=mt.split(':'); return(p.length===3?parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(p[2]):parseInt(p[0])*60+parseInt(p[1])); }
+function fmtDur(mt) { var s=parseMT(mt),h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h>0?h+'h'+m.toString().padStart(2,'0'):m+'min'; }
 
-function formatPace(speedMs) {
-  if (!speedMs || speedMs <= 0) return '-';
-  const paceSeconds = 1000 / speedMs;
-  const min = Math.floor(paceSeconds / 60);
-  const sec = Math.floor(paceSeconds % 60);
-  return min + ':' + sec.toString().padStart(2, '0');
-}
-
-function parseMovingTime(mt) {
-  if (!mt) return 0;
-  const parts = mt.split(':');
-  if (parts.length === 3) return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-  if (parts.length === 2) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-  return 0;
-}
-
-function formatDuration(mt) {
-  const sec = parseMovingTime(mt);
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  if (h > 0) return h + 'h' + m.toString().padStart(2, '0');
-  return m + 'min';
-}
-
-let map, allPolylines = [], selectedYear = 'all';
+var map, allPolylines = [];
 
 async function init() {
-  const base = document.querySelector('base');
-  const basePath = (base && base.href) ? '' : '';
-  const res = await fetch('activities.json');
-  const data = await res.json();
+  var res = await fetch('activities.json');
+  var data = await res.json();
+  var activities = Object.values(data).filter(function(a){return a.type==='Run';}).sort(function(a,b){return new Date(b.start_date_local)-new Date(a.start_date_local);});
 
-  const activities = Object.values(data)
-    .filter(function(a) { return a.type === 'Run'; })
-    .sort(function(a, b) { return new Date(b.start_date_local) - new Date(a.start_date_local); });
-
-  map = L.map('map', { zoomControl: true }).setView([48.85, 2.35], 11);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-    maxZoom: 19
-  }).addTo(map);
+  map = L.map('map',{zoomControl:true}).setView([48.85,2.35],11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',maxZoom:19}).addTo(map);
 
   var bounds = L.latLngBounds();
-  activities.forEach(function(a) {
-    if (!a.summary_polyline) return;
-    try {
-      var coords = decodePolyline(a.summary_polyline);
-      if (coords.length < 2) return;
-      var year = a.start_date_local.substring(0, 4);
-      var line = L.polyline(coords, { color: '#e0df4f', weight: 1.2, opacity: 0.5 });
-      line._year = year;
-      line._activity = a;
-      line.on('click', function() {
-        var km = (a.distance / 1000).toFixed(2);
-        var pace = formatPace(a.average_speed);
-        var hr = a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '-';
-        line.bindPopup('<b>' + (a.name || 'Run') + '</b><br>' + a.start_date_local.substring(0,10) + '<br>' + km + ' km &bull; ' + formatDuration(a.moving_time) + ' &bull; ' + pace + '/km &bull; ' + hr).openPopup();
+  activities.forEach(function(a){
+    if(!a.summary_polyline)return;
+    try{
+      var coords=decodePolyline(a.summary_polyline);
+      if(coords.length<2)return;
+      var year=a.start_date_local.substring(0,4);
+      var line=L.polyline(coords,{color:'#0a84ff',weight:1.2,opacity:0.4});
+      line._year=year; line._activity=a;
+      line.on('click',function(){
+        var km=(a.distance/1000).toFixed(2),pace=formatPace(a.average_speed);
+        line.bindPopup('<b>'+(a.name||'Run')+'</b><br>'+a.start_date_local.substring(0,10)+'<br>'+km+' km &bull; '+fmtDur(a.moving_time)+' &bull; '+pace+'/km').openPopup();
       });
       allPolylines.push(line);
       line.addTo(map);
-      coords.forEach(function(c) { bounds.extend(c); });
-    } catch(e) {}
+      coords.forEach(function(c){bounds.extend(c);});
+    }catch(e){}
   });
+  if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20]});
 
-  if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+  // Stats
+  var totalDist=0,totalSec=0,totalSpd=0,sc=0,years=new Set();
+  activities.forEach(function(a){totalDist+=a.distance;totalSec+=parseMT(a.moving_time);if(a.average_speed>0){totalSpd+=a.average_speed;sc++;}years.add(a.start_date_local.substring(0,4));});
+  document.getElementById('total-runs').textContent=activities.length;
+  document.getElementById('total-km').textContent=(totalDist/1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  document.getElementById('total-hours').textContent=Math.round(totalSec/3600);
+  document.getElementById('avg-pace').textContent=sc>0?formatPace(totalSpd/sc):'-';
+  document.getElementById('total-years').textContent=years.size;
 
-  var totalDist = 0, totalSeconds = 0, totalSpeed = 0, speedCount = 0;
-  var years = new Set();
-  activities.forEach(function(a) {
-    totalDist += a.distance;
-    totalSeconds += parseMovingTime(a.moving_time);
-    if (a.average_speed > 0) { totalSpeed += a.average_speed; speedCount++; }
-    years.add(a.start_date_local.substring(0, 4));
-  });
-
-  document.getElementById('total-runs').textContent = activities.length;
-  document.getElementById('total-km').textContent = (totalDist / 1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  document.getElementById('total-hours').textContent = Math.round(totalSeconds / 3600);
-  document.getElementById('avg-pace').textContent = speedCount > 0 ? formatPace(totalSpeed / speedCount) : '-';
-  document.getElementById('total-years').textContent = years.size;
-
-  var sortedYears = Array.from(years).sort().reverse();
-  var controls = document.getElementById('year-controls');
-  var allBtn = document.createElement('button');
-  allBtn.className = 'year-btn active';
-  allBtn.textContent = 'All';
-  allBtn.onclick = function() { filterYear('all', this); };
-  controls.appendChild(allBtn);
-  sortedYears.forEach(function(y) {
-    var btn = document.createElement('button');
-    btn.className = 'year-btn';
-    btn.textContent = y;
-    btn.onclick = function() { filterYear(y, this); };
-    controls.appendChild(btn);
-  });
+  // Year buttons
+  var sortedYears=Array.from(years).sort().reverse();
+  var controls=document.getElementById('year-controls');
+  var allBtn=document.createElement('button');allBtn.className='year-btn active';allBtn.textContent='All';allBtn.onclick=function(){filterYear('all',this);};controls.appendChild(allBtn);
+  sortedYears.forEach(function(y){var btn=document.createElement('button');btn.className='year-btn';btn.textContent=y;btn.onclick=function(){filterYear(y,this);};controls.appendChild(btn);});
 
   buildLocations(activities);
   buildHeatmap(activities);
   renderActivities(activities);
 }
 
-function filterYear(year, btn) {
-  selectedYear = year;
-  document.querySelectorAll('.year-btn').forEach(function(b) { b.classList.remove('active'); });
+function filterYear(year,btn){
+  document.querySelectorAll('.year-btn').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
-
-  var bounds = L.latLngBounds();
-  allPolylines.forEach(function(line) {
-    var show = year === 'all' || line._year === year;
-    if (show) {
-      line.setStyle({ opacity: 0.5 });
-      line.getLatLngs().forEach(function(c) { bounds.extend(c); });
-    } else {
-      line.setStyle({ opacity: 0.03 });
-    }
+  var bounds=L.latLngBounds();
+  allPolylines.forEach(function(line){
+    var show=year==='all'||line._year===year;
+    line.setStyle({opacity:show?0.4:0.03});
+    if(show)line.getLatLngs().forEach(function(c){bounds.extend(c);});
   });
-  if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+  if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20]});
 
-  var runs = 0, dist = 0, seconds = 0, speed = 0, sc = 0;
-  allPolylines.forEach(function(line) {
-    if (year !== 'all' && line._year !== year) return;
-    var a = line._activity;
-    runs++;
-    dist += a.distance;
-    seconds += parseMovingTime(a.moving_time);
-    if (a.average_speed > 0) { speed += a.average_speed; sc++; }
+  var runs=0,dist=0,sec=0,spd=0,sc=0;
+  allPolylines.forEach(function(line){
+    if(year!=='all'&&line._year!==year)return;
+    var a=line._activity;runs++;dist+=a.distance;sec+=parseMT(a.moving_time);
+    if(a.average_speed>0){spd+=a.average_speed;sc++;}
   });
-  document.getElementById('total-runs').textContent = runs;
-  document.getElementById('total-km').textContent = (dist / 1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  document.getElementById('total-hours').textContent = Math.round(seconds / 3600);
-  document.getElementById('avg-pace').textContent = sc > 0 ? formatPace(speed / sc) : '-';
+  document.getElementById('total-runs').textContent=runs;
+  document.getElementById('total-km').textContent=(dist/1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  document.getElementById('total-hours').textContent=Math.round(sec/3600);
+  document.getElementById('avg-pace').textContent=sc>0?formatPace(spd/sc):'-';
 
-  var filtered = allPolylines
-    .filter(function(l) { return year === 'all' || l._year === year; })
-    .map(function(l) { return l._activity; })
-    .sort(function(a, b) { return new Date(b.start_date_local) - new Date(a.start_date_local); });
+  var filtered=allPolylines.filter(function(l){return year==='all'||l._year===year;}).map(function(l){return l._activity;}).sort(function(a,b){return new Date(b.start_date_local)-new Date(a.start_date_local);});
   renderActivities(filtered);
 }
 
-function renderActivities(activities) {
-  var grid = document.getElementById('activities-grid');
-  grid.innerHTML = '';
-  activities.slice(0, 50).forEach(function(a) {
-    var card = document.createElement('div');
-    card.className = 'activity-card';
-    var date = a.start_date_local.substring(0, 10);
-    var km = (a.distance / 1000).toFixed(2);
-    var pace = formatPace(a.average_speed);
-    var hr = a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '';
-    card.innerHTML =
-      '<div class="date">' + date + '</div>' +
-      '<div class="name">' + (a.name || 'Run') + '</div>' +
-      '<div class="metrics">' +
-        '<div class="metric"><strong>' + km + '</strong> km</div>' +
-        '<div class="metric"><strong>' + formatDuration(a.moving_time) + '</strong></div>' +
-        '<div class="metric"><strong>' + pace + '</strong> /km</div>' +
-        (hr ? '<div class="metric"><strong>' + hr + '</strong></div>' : '') +
-      '</div>';
-    card.onclick = function() {
-      if (!a.summary_polyline) return;
-      var line = allPolylines.find(function(l) { return l._activity === a; });
-      if (line) {
-        map.fitBounds(line.getBounds(), { padding: [40, 40] });
-        line.setStyle({ opacity: 1, weight: 3, color: '#ff4444' });
-        setTimeout(function() { line.setStyle({ opacity: 0.5, weight: 1.2, color: '#e0df4f' }); }, 3000);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+function renderActivities(activities){
+  var grid=document.getElementById('activities-grid');grid.innerHTML='';
+  activities.slice(0,50).forEach(function(a){
+    var card=document.createElement('div');card.className='activity-card';
+    card.innerHTML='<div class="date">'+a.start_date_local.substring(0,10)+'</div><div class="name">'+(a.name||'Run')+'</div><div class="metrics"><div class="metric"><strong>'+(a.distance/1000).toFixed(2)+'</strong> km</div><div class="metric"><strong>'+fmtDur(a.moving_time)+'</strong></div><div class="metric"><strong>'+formatPace(a.average_speed)+'</strong> /km</div></div>';
+    card.onclick=function(){
+      if(!a.summary_polyline)return;
+      var line=allPolylines.find(function(l){return l._activity===a;});
+      if(line){map.fitBounds(line.getBounds(),{padding:[40,40]});line.setStyle({opacity:1,weight:3,color:'#ff453a'});setTimeout(function(){line.setStyle({opacity:0.4,weight:1.2,color:'#0a84ff'});},3000);window.scrollTo({top:0,behavior:'smooth'});}
     };
     grid.appendChild(card);
   });
-  if (activities.length > 50) {
-    var more = document.createElement('div');
-    more.className = 'activity-card';
-    more.style.textAlign = 'center';
-    more.style.color = '#666';
-    more.innerHTML = '<p>+ ' + (activities.length - 50) + ' more runs</p>';
-    grid.appendChild(more);
-  }
+  if(activities.length>50){var more=document.createElement('div');more.className='activity-card';more.style.textAlign='center';more.style.color='var(--text-tertiary)';more.innerHTML='<p style="padding:12px 0">+ '+(activities.length-50)+' more runs</p>';grid.appendChild(more);}
 }
 
-function buildLocations(activities) {
-  var ZONES = [
-    [48.856, 2.352, 25, 'Paris', 'France', '🇫🇷'],
-    [48.58, 7.75, 20, 'Strasbourg', 'France', '🇫🇷'],
-    [42.69, 2.88, 15, 'Saint-Cyprien', 'France', '🇫🇷'],
-    [50.72, 1.59, 15, 'Boulogne-sur-Mer', 'France', '🇫🇷'],
-    [-20.88, 55.45, 40, 'Saint-Denis', 'La Reunion', '🇷🇪'],
-    [-18.91, 47.52, 30, 'Antananarivo', 'Madagascar', '🇲🇬'],
-    [45.46, 9.19, 20, 'Milan', 'Italy', '🇮🇹'],
-    [1.35, 103.82, 15, 'Singapore', 'Singapore', '🇸🇬'],
-    [43.58, 7.02, 15, 'Cannes', 'France', '🇫🇷'],
-    [48.50, -1.73, 15, 'Saint-Malo', 'France', '🇫🇷'],
-    [49.20, 2.50, 15, 'Senlis', 'France', '🇫🇷'],
-    [47.71, 9.17, 15, 'Konstanz', 'Germany', '🇩🇪'],
-    [41.63, 9.33, 15, 'Corsica', 'France', '🇫🇷'],
-    [43.63, 5.14, 15, 'Aix-en-Provence', 'France', '🇫🇷'],
-    [49.34, -0.62, 20, 'Deauville', 'France', '🇫🇷'],
-    [42.73, -0.01, 15, 'Pyrenees', 'France', '🇫🇷'],
-    [40.95, 9.57, 15, 'Sardinia', 'Italy', '🇮🇹'],
-    [48.00, 6.91, 15, 'Vosges', 'France', '🇫🇷'],
-    [49.29, -0.14, 15, 'Cabourg', 'France', '🇫🇷'],
-    [45.31, 6.54, 15, 'Val Cenis', 'France', '🇫🇷'],
-    [49.62, 3.88, 15, 'Laon', 'France', '🇫🇷'],
-    [48.47, 7.64, 15, 'Obernai', 'France', '🇫🇷'],
-  ];
+function buildLocations(activities){
+  var ZONES=[[48.856,2.352,25,'Paris','France','\u{1F1EB}\u{1F1F7}'],[48.58,7.75,20,'Strasbourg','France','\u{1F1EB}\u{1F1F7}'],[42.69,2.88,15,'Saint-Cyprien','France','\u{1F1EB}\u{1F1F7}'],[50.72,1.59,15,'Boulogne-sur-Mer','France','\u{1F1EB}\u{1F1F7}'],[-20.88,55.45,40,'Saint-Denis','La Reunion','\u{1F1F7}\u{1F1EA}'],[-18.91,47.52,30,'Antananarivo','Madagascar','\u{1F1F2}\u{1F1EC}'],[45.46,9.19,20,'Milan','Italy','\u{1F1EE}\u{1F1F9}'],[1.35,103.82,15,'Singapore','Singapore','\u{1F1F8}\u{1F1EC}'],[43.58,7.02,15,'Cannes','France','\u{1F1EB}\u{1F1F7}'],[48.50,-1.73,15,'Saint-Malo','France','\u{1F1EB}\u{1F1F7}'],[49.20,2.50,15,'Senlis','France','\u{1F1EB}\u{1F1F7}'],[47.71,9.17,15,'Konstanz','Germany','\u{1F1E9}\u{1F1EA}'],[41.63,9.33,15,'Corsica','France','\u{1F1EB}\u{1F1F7}'],[43.63,5.14,15,'Aix-en-Provence','France','\u{1F1EB}\u{1F1F7}'],[49.34,-0.62,20,'Deauville','France','\u{1F1EB}\u{1F1F7}'],[42.73,-0.01,15,'Pyrenees','France','\u{1F1EB}\u{1F1F7}'],[40.95,9.57,15,'Sardinia','Italy','\u{1F1EE}\u{1F1F9}'],[48.00,6.91,15,'Vosges','France','\u{1F1EB}\u{1F1F7}'],[49.29,-0.14,15,'Cabourg','France','\u{1F1EB}\u{1F1F7}'],[45.31,6.54,15,'Val Cenis','France','\u{1F1EB}\u{1F1F7}'],[49.62,3.88,15,'Laon','France','\u{1F1EB}\u{1F1F7}'],[48.47,7.64,15,'Obernai','France','\u{1F1EB}\u{1F1F7}'],[43.30,5.37,20,'Marseille','France','\u{1F1EB}\u{1F1F7}'],[47.32,5.04,15,'Dijon','France','\u{1F1EB}\u{1F1F7}'],[44.84,-0.58,15,'Bordeaux','France','\u{1F1EB}\u{1F1F7}'],[43.61,3.88,15,'Montpellier','France','\u{1F1EB}\u{1F1F7}'],[43.70,7.27,15,'Nice','France','\u{1F1EB}\u{1F1F7}'],[46.20,6.14,15,'Geneva','Switzerland','\u{1F1E8}\u{1F1ED}'],[48.39,2.71,15,'Fontainebleau','France','\u{1F1EB}\u{1F1F7}'],[47.38,0.69,15,'Tours','France','\u{1F1EB}\u{1F1F7}']];
 
-  var countryFlags = {'France':'🇫🇷','Italy':'🇮🇹','Madagascar':'🇲🇬','Germany':'🇩🇪','Singapore':'🇸🇬','La Reunion':'🇷🇪'};
+  var cFlags={'France':'\u{1F1EB}\u{1F1F7}','Italy':'\u{1F1EE}\u{1F1F9}','Madagascar':'\u{1F1F2}\u{1F1EC}','Germany':'\u{1F1E9}\u{1F1EA}','Singapore':'\u{1F1F8}\u{1F1EC}','La Reunion':'\u{1F1F7}\u{1F1EA}','Switzerland':'\u{1F1E8}\u{1F1ED}'};
 
-  function haversine(lat1, lon1, lat2, lon2) {
-    var R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
-    var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
+  function hav(a1,o1,a2,o2){var R=6371,d1=(a2-a1)*Math.PI/180,d2=(o2-o1)*Math.PI/180,a=Math.sin(d1/2)*Math.sin(d1/2)+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(d2/2)*Math.sin(d2/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 
-  function firstPt(encoded) {
-    var index = 0, lat = 0, lng = 0, b, shift, result;
-    shift = 0; result = 0;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
-    shift = 0; result = 0;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
-    return [lat / 1e5, lng / 1e5];
-  }
+  function fPt(enc){var i=0,la=0,lo=0,b,s,r;s=0;r=0;do{b=enc.charCodeAt(i++)-63;r|=(b&0x1f)<<s;s+=5;}while(b>=0x20);la+=(r&1)?~(r>>1):(r>>1);s=0;r=0;do{b=enc.charCodeAt(i++)-63;r|=(b&0x1f)<<s;s+=5;}while(b>=0x20);lo+=(r&1)?~(r>>1):(r>>1);return[la/1e5,lo/1e5];}
 
-  var cityCount = {}, countryCount = {}, cityFlags = {};
-  activities.forEach(function(a) {
-    if (!a.summary_polyline) return;
-    var pt = firstPt(a.summary_polyline);
-    for (var i = 0; i < ZONES.length; i++) {
-      var z = ZONES[i];
-      if (haversine(pt[0], pt[1], z[0], z[1]) <= z[2]) {
-        cityCount[z[3]] = (cityCount[z[3]] || 0) + 1;
-        countryCount[z[4]] = (countryCount[z[4]] || 0) + 1;
-        cityFlags[z[3]] = z[5];
-        return;
-      }
-    }
-  });
+  var cc={},cyc={},cyf={};
+  activities.forEach(function(a){if(!a.summary_polyline)return;var pt=fPt(a.summary_polyline);for(var i=0;i<ZONES.length;i++){var z=ZONES[i];if(hav(pt[0],pt[1],z[0],z[1])<=z[2]){cyc[z[3]]=(cyc[z[3]]||0)+1;cc[z[4]]=(cc[z[4]]||0)+1;cyf[z[3]]=z[5];return;}}});
 
-  // Render countries
-  var countriesEl = document.getElementById('countries-list');
-  countriesEl.innerHTML = '<h4>Countries</h4>';
-  var countryArr = Object.entries(countryCount).sort(function(a,b) { return b[1]-a[1]; });
-  var maxCountry = countryArr.length > 0 ? countryArr[0][1] : 1;
-  countryArr.forEach(function(entry) {
-    var div = document.createElement('div');
-    div.className = 'location-item';
-    var pct = Math.round(entry[1] / maxCountry * 100);
-    div.innerHTML = '<span class="loc-name"><span class="loc-flag">' + (countryFlags[entry[0]] || '') + '</span>' + entry[0] + '</span><span class="loc-count">' + entry[1] + ' runs</span>';
-    countriesEl.appendChild(div);
-    var bar = document.createElement('div');
-    bar.className = 'loc-bar';
-    bar.style.width = pct + '%';
-    bar.style.background = '#e0df4f';
-    bar.style.height = '3px';
-    bar.style.borderRadius = '2px';
-    bar.style.opacity = '0.3';
-    countriesEl.appendChild(bar);
-  });
+  var el=document.getElementById('countries-list');el.innerHTML='<h4>Countries</h4>';
+  var ca=Object.entries(cc).sort(function(a,b){return b[1]-a[1];});var mx=ca.length>0?ca[0][1]:1;
+  ca.forEach(function(e){var d=document.createElement('div');d.className='location-item';d.innerHTML='<span class="loc-name"><span class="loc-flag">'+(cFlags[e[0]]||'')+'</span>'+e[0]+'</span><span class="loc-count">'+e[1]+' runs</span>';el.appendChild(d);var bar=document.createElement('div');bar.className='loc-bar';bar.style.width=Math.round(e[1]/mx*100)+'%';el.appendChild(bar);});
 
-  // Render cities
-  var citiesEl = document.getElementById('cities-list');
-  citiesEl.innerHTML = '<h4>Cities & Regions</h4>';
-  var cityArr = Object.entries(cityCount).sort(function(a,b) { return b[1]-a[1]; });
-  var maxCity = cityArr.length > 0 ? cityArr[0][1] : 1;
-  cityArr.forEach(function(entry) {
-    var div = document.createElement('div');
-    div.className = 'location-item';
-    var pct = Math.round(entry[1] / maxCity * 100);
-    div.innerHTML = '<span class="loc-name"><span class="loc-flag">' + (cityFlags[entry[0]] || '') + '</span>' + entry[0] + '</span><span class="loc-count">' + entry[1] + '</span>';
-    citiesEl.appendChild(div);
-    var bar = document.createElement('div');
-    bar.style.width = pct + '%';
-    bar.style.background = '#e0df4f';
-    bar.style.height = '3px';
-    bar.style.borderRadius = '2px';
-    bar.style.opacity = '0.3';
-    citiesEl.appendChild(bar);
-  });
+  var el2=document.getElementById('cities-list');el2.innerHTML='<h4>Cities & Regions</h4>';
+  var cya=Object.entries(cyc).sort(function(a,b){return b[1]-a[1];});var mx2=cya.length>0?cya[0][1]:1;
+  cya.forEach(function(e){var d=document.createElement('div');d.className='location-item';d.innerHTML='<span class="loc-name"><span class="loc-flag">'+(cyf[e[0]]||'')+'</span>'+e[0]+'</span><span class="loc-count">'+e[1]+'</span>';el2.appendChild(d);var bar=document.createElement('div');bar.className='loc-bar';bar.style.width=Math.round(e[1]/mx2*100)+'%';el2.appendChild(bar);});
 }
 
-function buildHeatmap(activities) {
-  var section = document.getElementById('heatmap-section');
-  var now = new Date();
-  var oneYearAgo = new Date(now);
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-  var dayCounts = {};
-  activities.forEach(function(a) {
-    var d = a.start_date_local.substring(0, 10);
-    dayCounts[d] = (dayCounts[d] || 0) + 1;
-  });
-
-  var h3 = document.createElement('h3');
-  h3.textContent = 'Last 12 months';
-  section.appendChild(h3);
-
-  var grid = document.createElement('div');
-  grid.className = 'heatmap-grid';
-
-  var d = new Date(oneYearAgo);
-  while (d <= now) {
-    var key = d.toISOString().substring(0, 10);
-    var count = dayCounts[key] || 0;
-    var cell = document.createElement('div');
-    cell.className = 'heatmap-cell';
-    if (count >= 3) cell.classList.add('l4');
-    else if (count >= 2) cell.classList.add('l3');
-    else if (count >= 1) cell.classList.add('l2');
-    cell.title = key + ': ' + count + ' run' + (count !== 1 ? 's' : '');
-    grid.appendChild(cell);
-    d.setDate(d.getDate() + 1);
-  }
+function buildHeatmap(activities){
+  var section=document.getElementById('heatmap-section');
+  var now=new Date(),ago=new Date(now);ago.setFullYear(ago.getFullYear()-1);
+  var dc={};activities.forEach(function(a){var d=a.start_date_local.substring(0,10);dc[d]=(dc[d]||0)+1;});
+  var grid=document.createElement('div');grid.className='heatmap-grid';
+  var d=new Date(ago);
+  while(d<=now){var k=d.toISOString().substring(0,10),c=dc[k]||0,cell=document.createElement('div');cell.className='heatmap-cell';if(c>=3)cell.classList.add('l4');else if(c>=2)cell.classList.add('l3');else if(c>=1)cell.classList.add('l2');cell.title=k+': '+c+' run'+(c!==1?'s':'');grid.appendChild(cell);d.setDate(d.getDate()+1);}
   section.appendChild(grid);
 }
 
