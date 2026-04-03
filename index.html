@@ -1,17 +1,323 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/running_page/images/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Running Page</title>
-    <script type="module" crossorigin src="/running_page/assets/index-ac48cd12.js"></script>
-    <link rel="modulepreload" crossorigin href="/running_page/assets/vendors-d8c42573.js">
-    <link rel="modulepreload" crossorigin href="/running_page/assets/activities-087a5094.js">
-    <link rel="stylesheet" href="/running_page/assets/index-8ea0d718.css">
-  </head>
-  <body>
-    <div id="root"></div>
-    
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frederic Klein - Running</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e0e0e0; }
+
+  .header { background: #111; border-bottom: 1px solid #222; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header h1 span { color: #e0df4f; }
+  .header nav a { color: #999; text-decoration: none; font-size: 14px; margin-left: 20px; }
+  .header nav a:hover { color: #fff; }
+
+  #map { width: 100%; height: 65vh; margin-top: 49px; }
+
+  .stats-bar { display: flex; justify-content: center; gap: 40px; padding: 20px; background: #111; border-bottom: 1px solid #222; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-value { font-size: 28px; font-weight: 700; color: #e0df4f; }
+  .stat-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  .controls { display: flex; justify-content: center; gap: 8px; padding: 16px; background: #0a0a0a; flex-wrap: wrap; }
+  .year-btn { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 6px 14px; border-radius: 16px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+  .year-btn:hover { border-color: #e0df4f; color: #e0df4f; }
+  .year-btn.active { background: #e0df4f; color: #000; border-color: #e0df4f; font-weight: 600; }
+
+  .activities-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 16px 24px 40px; max-width: 1400px; margin: 0 auto; }
+  .activity-card { background: #141414; border: 1px solid #222; border-radius: 8px; padding: 14px; transition: border-color 0.2s; cursor: pointer; }
+  .activity-card:hover { border-color: #e0df4f; }
+  .activity-card .date { font-size: 12px; color: #666; }
+  .activity-card .name { font-size: 14px; font-weight: 500; margin: 4px 0; }
+  .activity-card .metrics { display: flex; gap: 16px; margin-top: 8px; }
+  .activity-card .metric { font-size: 13px; }
+  .activity-card .metric strong { color: #e0df4f; }
+
+  .heatmap { padding: 16px 24px; max-width: 1400px; margin: 0 auto; }
+  .heatmap h3 { font-size: 14px; color: #888; margin-bottom: 10px; }
+  .heatmap-grid { display: flex; gap: 2px; flex-wrap: wrap; }
+  .heatmap-cell { width: 11px; height: 11px; border-radius: 2px; background: #161b22; }
+  .heatmap-cell.l1 { background: #0e4429; }
+  .heatmap-cell.l2 { background: #006d32; }
+  .heatmap-cell.l3 { background: #26a641; }
+  .heatmap-cell.l4 { background: #e0df4f; }
+
+  .footer { text-align: center; padding: 20px; color: #555; font-size: 12px; border-top: 1px solid #1a1a1a; }
+  .footer a { color: #e0df4f; text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .stats-bar { gap: 20px; }
+    .stat-value { font-size: 22px; }
+    .activities-grid { grid-template-columns: 1fr; padding: 12px; }
+    #map { height: 50vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>Running</span> Journey</h1>
+  <nav>
+    <a href="https://www.fklein.me">Portfolio</a>
+    <a href="https://blog.fklein.me">Blog</a>
+  </nav>
+</div>
+
+<div id="map"></div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-value" id="total-runs">-</div><div class="stat-label">Runs</div></div>
+  <div class="stat"><div class="stat-value" id="total-km">-</div><div class="stat-label">Kilometers</div></div>
+  <div class="stat"><div class="stat-value" id="total-hours">-</div><div class="stat-label">Hours</div></div>
+  <div class="stat"><div class="stat-value" id="avg-pace">-</div><div class="stat-label">Avg Pace /km</div></div>
+  <div class="stat"><div class="stat-value" id="total-years">-</div><div class="stat-label">Years</div></div>
+</div>
+
+<div class="controls" id="year-controls"></div>
+
+<div class="heatmap" id="heatmap-section"></div>
+
+<div class="activities-grid" id="activities-grid"></div>
+
+<div class="footer">
+  <a href="https://www.fklein.me">Frederic Klein</a> &bull; Running data visualized with Leaflet & OpenStreetMap
+</div>
+
+<script>
+function decodePolyline(encoded) {
+  const points = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+  return points;
+}
+
+function formatPace(speedMs) {
+  if (!speedMs || speedMs <= 0) return '-';
+  const paceSeconds = 1000 / speedMs;
+  const min = Math.floor(paceSeconds / 60);
+  const sec = Math.floor(paceSeconds % 60);
+  return min + ':' + sec.toString().padStart(2, '0');
+}
+
+function parseMovingTime(mt) {
+  if (!mt) return 0;
+  const parts = mt.split(':');
+  if (parts.length === 3) return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+  if (parts.length === 2) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+  return 0;
+}
+
+function formatDuration(mt) {
+  const sec = parseMovingTime(mt);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return h + 'h' + m.toString().padStart(2, '0');
+  return m + 'min';
+}
+
+let map, allPolylines = [], selectedYear = 'all';
+
+async function init() {
+  const base = document.querySelector('base');
+  const basePath = (base && base.href) ? '' : '';
+  const res = await fetch('activities.json');
+  const data = await res.json();
+
+  const activities = Object.values(data)
+    .filter(function(a) { return a.type === 'Run'; })
+    .sort(function(a, b) { return new Date(b.start_date_local) - new Date(a.start_date_local); });
+
+  map = L.map('map', { zoomControl: true }).setView([48.85, 2.35], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 19
+  }).addTo(map);
+
+  var bounds = L.latLngBounds();
+  activities.forEach(function(a) {
+    if (!a.summary_polyline) return;
+    try {
+      var coords = decodePolyline(a.summary_polyline);
+      if (coords.length < 2) return;
+      var year = a.start_date_local.substring(0, 4);
+      var line = L.polyline(coords, { color: '#e0df4f', weight: 1.2, opacity: 0.5 });
+      line._year = year;
+      line._activity = a;
+      line.on('click', function() {
+        var km = (a.distance / 1000).toFixed(2);
+        var pace = formatPace(a.average_speed);
+        var hr = a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '-';
+        line.bindPopup('<b>' + (a.name || 'Run') + '</b><br>' + a.start_date_local.substring(0,10) + '<br>' + km + ' km &bull; ' + formatDuration(a.moving_time) + ' &bull; ' + pace + '/km &bull; ' + hr).openPopup();
+      });
+      allPolylines.push(line);
+      line.addTo(map);
+      coords.forEach(function(c) { bounds.extend(c); });
+    } catch(e) {}
+  });
+
+  if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+
+  var totalDist = 0, totalSeconds = 0, totalSpeed = 0, speedCount = 0;
+  var years = new Set();
+  activities.forEach(function(a) {
+    totalDist += a.distance;
+    totalSeconds += parseMovingTime(a.moving_time);
+    if (a.average_speed > 0) { totalSpeed += a.average_speed; speedCount++; }
+    years.add(a.start_date_local.substring(0, 4));
+  });
+
+  document.getElementById('total-runs').textContent = activities.length;
+  document.getElementById('total-km').textContent = (totalDist / 1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  document.getElementById('total-hours').textContent = Math.round(totalSeconds / 3600);
+  document.getElementById('avg-pace').textContent = speedCount > 0 ? formatPace(totalSpeed / speedCount) : '-';
+  document.getElementById('total-years').textContent = years.size;
+
+  var sortedYears = Array.from(years).sort().reverse();
+  var controls = document.getElementById('year-controls');
+  var allBtn = document.createElement('button');
+  allBtn.className = 'year-btn active';
+  allBtn.textContent = 'All';
+  allBtn.onclick = function() { filterYear('all', this); };
+  controls.appendChild(allBtn);
+  sortedYears.forEach(function(y) {
+    var btn = document.createElement('button');
+    btn.className = 'year-btn';
+    btn.textContent = y;
+    btn.onclick = function() { filterYear(y, this); };
+    controls.appendChild(btn);
+  });
+
+  buildHeatmap(activities);
+  renderActivities(activities);
+}
+
+function filterYear(year, btn) {
+  selectedYear = year;
+  document.querySelectorAll('.year-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+
+  var bounds = L.latLngBounds();
+  allPolylines.forEach(function(line) {
+    var show = year === 'all' || line._year === year;
+    if (show) {
+      line.setStyle({ opacity: 0.5 });
+      line.getLatLngs().forEach(function(c) { bounds.extend(c); });
+    } else {
+      line.setStyle({ opacity: 0.03 });
+    }
+  });
+  if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+
+  var runs = 0, dist = 0, seconds = 0, speed = 0, sc = 0;
+  allPolylines.forEach(function(line) {
+    if (year !== 'all' && line._year !== year) return;
+    var a = line._activity;
+    runs++;
+    dist += a.distance;
+    seconds += parseMovingTime(a.moving_time);
+    if (a.average_speed > 0) { speed += a.average_speed; sc++; }
+  });
+  document.getElementById('total-runs').textContent = runs;
+  document.getElementById('total-km').textContent = (dist / 1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  document.getElementById('total-hours').textContent = Math.round(seconds / 3600);
+  document.getElementById('avg-pace').textContent = sc > 0 ? formatPace(speed / sc) : '-';
+
+  var filtered = allPolylines
+    .filter(function(l) { return year === 'all' || l._year === year; })
+    .map(function(l) { return l._activity; })
+    .sort(function(a, b) { return new Date(b.start_date_local) - new Date(a.start_date_local); });
+  renderActivities(filtered);
+}
+
+function renderActivities(activities) {
+  var grid = document.getElementById('activities-grid');
+  grid.innerHTML = '';
+  activities.slice(0, 50).forEach(function(a) {
+    var card = document.createElement('div');
+    card.className = 'activity-card';
+    var date = a.start_date_local.substring(0, 10);
+    var km = (a.distance / 1000).toFixed(2);
+    var pace = formatPace(a.average_speed);
+    var hr = a.average_heartrate ? Math.round(a.average_heartrate) + ' bpm' : '';
+    card.innerHTML =
+      '<div class="date">' + date + '</div>' +
+      '<div class="name">' + (a.name || 'Run') + '</div>' +
+      '<div class="metrics">' +
+        '<div class="metric"><strong>' + km + '</strong> km</div>' +
+        '<div class="metric"><strong>' + formatDuration(a.moving_time) + '</strong></div>' +
+        '<div class="metric"><strong>' + pace + '</strong> /km</div>' +
+        (hr ? '<div class="metric"><strong>' + hr + '</strong></div>' : '') +
+      '</div>';
+    card.onclick = function() {
+      if (!a.summary_polyline) return;
+      var line = allPolylines.find(function(l) { return l._activity === a; });
+      if (line) {
+        map.fitBounds(line.getBounds(), { padding: [40, 40] });
+        line.setStyle({ opacity: 1, weight: 3, color: '#ff4444' });
+        setTimeout(function() { line.setStyle({ opacity: 0.5, weight: 1.2, color: '#e0df4f' }); }, 3000);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    grid.appendChild(card);
+  });
+  if (activities.length > 50) {
+    var more = document.createElement('div');
+    more.className = 'activity-card';
+    more.style.textAlign = 'center';
+    more.style.color = '#666';
+    more.innerHTML = '<p>+ ' + (activities.length - 50) + ' more runs</p>';
+    grid.appendChild(more);
+  }
+}
+
+function buildHeatmap(activities) {
+  var section = document.getElementById('heatmap-section');
+  var now = new Date();
+  var oneYearAgo = new Date(now);
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+  var dayCounts = {};
+  activities.forEach(function(a) {
+    var d = a.start_date_local.substring(0, 10);
+    dayCounts[d] = (dayCounts[d] || 0) + 1;
+  });
+
+  var h3 = document.createElement('h3');
+  h3.textContent = 'Last 12 months';
+  section.appendChild(h3);
+
+  var grid = document.createElement('div');
+  grid.className = 'heatmap-grid';
+
+  var d = new Date(oneYearAgo);
+  while (d <= now) {
+    var key = d.toISOString().substring(0, 10);
+    var count = dayCounts[key] || 0;
+    var cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    if (count >= 3) cell.classList.add('l4');
+    else if (count >= 2) cell.classList.add('l3');
+    else if (count >= 1) cell.classList.add('l2');
+    cell.title = key + ': ' + count + ' run' + (count !== 1 ? 's' : '');
+    grid.appendChild(cell);
+    d.setDate(d.getDate() + 1);
+  }
+  section.appendChild(grid);
+}
+
+init();
+</script>
+</body>
 </html>
