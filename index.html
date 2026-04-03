@@ -102,16 +102,16 @@
 
 <div class="controls" id="year-controls"></div>
 
+<div class="section" id="heatmap-section">
+  <h3 class="section-title">Last 12 Months</h3>
+</div>
+
 <div class="section">
   <h3 class="section-title">Where I Run</h3>
   <div class="locations">
     <div class="location-col" id="countries-list"></div>
     <div class="location-col" id="cities-list"></div>
   </div>
-</div>
-
-<div class="section" id="heatmap-section">
-  <h3 class="section-title">Last 12 Months</h3>
 </div>
 
 <div class="section">
@@ -169,8 +169,6 @@ async function init() {
       coords.forEach(function(c){bounds.extend(c);});
     }catch(e){}
   });
-  if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20]});
-
   // Stats
   var totalDist=0,totalSec=0,totalSpd=0,sc=0,years=new Set();
   activities.forEach(function(a){totalDist+=a.distance;totalSec+=parseMT(a.moving_time);if(a.average_speed>0){totalSpd+=a.average_speed;sc++;}years.add(a.start_date_local.substring(0,4));});
@@ -187,6 +185,7 @@ async function init() {
   sortedYears.forEach(function(y){var btn=document.createElement('button');btn.className='year-btn';btn.textContent=y;btn.onclick=function(){filterYear(y,this);};controls.appendChild(btn);});
 
   buildLocations(activities);
+  if(window._topCityCoords){map.setView(window._topCityCoords,12);}else if(bounds.isValid()){map.fitBounds(bounds,{padding:[20,20]});}
   buildHeatmap(activities);
   renderActivities(activities);
 }
@@ -245,12 +244,15 @@ function buildLocations(activities){
   activities.forEach(function(a){if(!a.summary_polyline)return;var pt=fPt(a.summary_polyline);for(var i=0;i<ZONES.length;i++){var z=ZONES[i];if(hav(pt[0],pt[1],z[0],z[1])<=z[2]){cyc[z[3]]=(cyc[z[3]]||0)+1;cc[z[4]]=(cc[z[4]]||0)+1;cyf[z[3]]=z[5];return;}}});
 
   var el=document.getElementById('countries-list');el.innerHTML='<h4>Countries</h4>';
-  var ca=Object.entries(cc).sort(function(a,b){return b[1]-a[1];});var mx=ca.length>0?ca[0][1]:1;
+  var ca=Object.entries(cc).sort(function(a,b){return b[1]-a[1];}).slice(0,5);var mx=ca.length>0?ca[0][1]:1;
   ca.forEach(function(e){var d=document.createElement('div');d.className='location-item';d.innerHTML='<span class="loc-name"><span class="loc-flag">'+(cFlags[e[0]]||'')+'</span>'+e[0]+'</span><span class="loc-count">'+e[1]+' runs</span>';el.appendChild(d);var bar=document.createElement('div');bar.className='loc-bar';bar.style.width=Math.round(e[1]/mx*100)+'%';el.appendChild(bar);});
 
   var el2=document.getElementById('cities-list');el2.innerHTML='<h4>Cities & Regions</h4>';
-  var cya=Object.entries(cyc).sort(function(a,b){return b[1]-a[1];});var mx2=cya.length>0?cya[0][1]:1;
+  var cya=Object.entries(cyc).sort(function(a,b){return b[1]-a[1];}).slice(0,5);var mx2=cya.length>0?cya[0][1]:1;
   cya.forEach(function(e){var d=document.createElement('div');d.className='location-item';d.innerHTML='<span class="loc-name"><span class="loc-flag">'+(cyf[e[0]]||'')+'</span>'+e[0]+'</span><span class="loc-count">'+e[1]+'</span>';el2.appendChild(d);var bar=document.createElement('div');bar.className='loc-bar';bar.style.width=Math.round(e[1]/mx2*100)+'%';el2.appendChild(bar);});
+
+  // Return top city zone for map zoom
+  if(cya.length>0){var topCity=cya[0][0];for(var i=0;i<ZONES.length;i++){if(ZONES[i][3]===topCity){window._topCityCoords=[ZONES[i][0],ZONES[i][1]];break;}}}
 }
 
 function buildHeatmap(activities){
