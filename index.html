@@ -37,6 +37,16 @@
   .activity-card .metric { font-size: 13px; }
   .activity-card .metric strong { color: #e0df4f; }
 
+  .locations { padding: 16px 24px; max-width: 1400px; margin: 0 auto; display: flex; gap: 32px; flex-wrap: wrap; }
+  .locations h3 { font-size: 14px; color: #888; margin-bottom: 10px; width: 100%; }
+  .location-col { flex: 1; min-width: 250px; }
+  .location-col h4 { font-size: 13px; color: #e0df4f; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .location-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+  .location-item .loc-name { color: #ccc; }
+  .location-item .loc-flag { margin-right: 6px; }
+  .location-item .loc-count { color: #e0df4f; font-weight: 600; }
+  .location-item .loc-bar { background: #e0df4f; height: 3px; border-radius: 2px; margin-top: 2px; opacity: 0.3; }
+
   .heatmap { padding: 16px 24px; max-width: 1400px; margin: 0 auto; }
   .heatmap h3 { font-size: 14px; color: #888; margin-bottom: 10px; }
   .heatmap-grid { display: flex; gap: 2px; flex-wrap: wrap; }
@@ -78,6 +88,12 @@
 </div>
 
 <div class="controls" id="year-controls"></div>
+
+<div class="locations" id="locations-section">
+  <h3>Where I Run</h3>
+  <div class="location-col" id="countries-list"></div>
+  <div class="location-col" id="cities-list"></div>
+</div>
 
 <div class="heatmap" id="heatmap-section"></div>
 
@@ -199,6 +215,7 @@ async function init() {
     controls.appendChild(btn);
   });
 
+  buildLocations(activities);
   buildHeatmap(activities);
   renderActivities(activities);
 }
@@ -280,6 +297,108 @@ function renderActivities(activities) {
     more.innerHTML = '<p>+ ' + (activities.length - 50) + ' more runs</p>';
     grid.appendChild(more);
   }
+}
+
+function buildLocations(activities) {
+  var ZONES = [
+    [48.856, 2.352, 25, 'Paris', 'France', '🇫🇷'],
+    [48.58, 7.75, 20, 'Strasbourg', 'France', '🇫🇷'],
+    [42.69, 2.88, 15, 'Saint-Cyprien', 'France', '🇫🇷'],
+    [50.72, 1.59, 15, 'Boulogne-sur-Mer', 'France', '🇫🇷'],
+    [-20.88, 55.45, 40, 'Saint-Denis', 'La Reunion', '🇷🇪'],
+    [-18.91, 47.52, 30, 'Antananarivo', 'Madagascar', '🇲🇬'],
+    [45.46, 9.19, 20, 'Milan', 'Italy', '🇮🇹'],
+    [1.35, 103.82, 15, 'Singapore', 'Singapore', '🇸🇬'],
+    [43.58, 7.02, 15, 'Cannes', 'France', '🇫🇷'],
+    [48.50, -1.73, 15, 'Saint-Malo', 'France', '🇫🇷'],
+    [49.20, 2.50, 15, 'Senlis', 'France', '🇫🇷'],
+    [47.71, 9.17, 15, 'Konstanz', 'Germany', '🇩🇪'],
+    [41.63, 9.33, 15, 'Corsica', 'France', '🇫🇷'],
+    [43.63, 5.14, 15, 'Aix-en-Provence', 'France', '🇫🇷'],
+    [49.34, -0.62, 20, 'Deauville', 'France', '🇫🇷'],
+    [42.73, -0.01, 15, 'Pyrenees', 'France', '🇫🇷'],
+    [40.95, 9.57, 15, 'Sardinia', 'Italy', '🇮🇹'],
+    [48.00, 6.91, 15, 'Vosges', 'France', '🇫🇷'],
+    [49.29, -0.14, 15, 'Cabourg', 'France', '🇫🇷'],
+    [45.31, 6.54, 15, 'Val Cenis', 'France', '🇫🇷'],
+    [49.62, 3.88, 15, 'Laon', 'France', '🇫🇷'],
+    [48.47, 7.64, 15, 'Obernai', 'France', '🇫🇷'],
+  ];
+
+  var countryFlags = {'France':'🇫🇷','Italy':'🇮🇹','Madagascar':'🇲🇬','Germany':'🇩🇪','Singapore':'🇸🇬','La Reunion':'🇷🇪'};
+
+  function haversine(lat1, lon1, lat2, lon2) {
+    var R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function firstPt(encoded) {
+    var index = 0, lat = 0, lng = 0, b, shift, result;
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    return [lat / 1e5, lng / 1e5];
+  }
+
+  var cityCount = {}, countryCount = {}, cityFlags = {};
+  activities.forEach(function(a) {
+    if (!a.summary_polyline) return;
+    var pt = firstPt(a.summary_polyline);
+    for (var i = 0; i < ZONES.length; i++) {
+      var z = ZONES[i];
+      if (haversine(pt[0], pt[1], z[0], z[1]) <= z[2]) {
+        cityCount[z[3]] = (cityCount[z[3]] || 0) + 1;
+        countryCount[z[4]] = (countryCount[z[4]] || 0) + 1;
+        cityFlags[z[3]] = z[5];
+        return;
+      }
+    }
+  });
+
+  // Render countries
+  var countriesEl = document.getElementById('countries-list');
+  countriesEl.innerHTML = '<h4>Countries</h4>';
+  var countryArr = Object.entries(countryCount).sort(function(a,b) { return b[1]-a[1]; });
+  var maxCountry = countryArr.length > 0 ? countryArr[0][1] : 1;
+  countryArr.forEach(function(entry) {
+    var div = document.createElement('div');
+    div.className = 'location-item';
+    var pct = Math.round(entry[1] / maxCountry * 100);
+    div.innerHTML = '<span class="loc-name"><span class="loc-flag">' + (countryFlags[entry[0]] || '') + '</span>' + entry[0] + '</span><span class="loc-count">' + entry[1] + ' runs</span>';
+    countriesEl.appendChild(div);
+    var bar = document.createElement('div');
+    bar.className = 'loc-bar';
+    bar.style.width = pct + '%';
+    bar.style.background = '#e0df4f';
+    bar.style.height = '3px';
+    bar.style.borderRadius = '2px';
+    bar.style.opacity = '0.3';
+    countriesEl.appendChild(bar);
+  });
+
+  // Render cities
+  var citiesEl = document.getElementById('cities-list');
+  citiesEl.innerHTML = '<h4>Cities & Regions</h4>';
+  var cityArr = Object.entries(cityCount).sort(function(a,b) { return b[1]-a[1]; });
+  var maxCity = cityArr.length > 0 ? cityArr[0][1] : 1;
+  cityArr.forEach(function(entry) {
+    var div = document.createElement('div');
+    div.className = 'location-item';
+    var pct = Math.round(entry[1] / maxCity * 100);
+    div.innerHTML = '<span class="loc-name"><span class="loc-flag">' + (cityFlags[entry[0]] || '') + '</span>' + entry[0] + '</span><span class="loc-count">' + entry[1] + '</span>';
+    citiesEl.appendChild(div);
+    var bar = document.createElement('div');
+    bar.style.width = pct + '%';
+    bar.style.background = '#e0df4f';
+    bar.style.height = '3px';
+    bar.style.borderRadius = '2px';
+    bar.style.opacity = '0.3';
+    citiesEl.appendChild(bar);
+  });
 }
 
 function buildHeatmap(activities) {
